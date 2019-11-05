@@ -75,7 +75,7 @@ veri: build-verilator image/bin/verilator
 missing-nodes:
 	$(QUIET)cat build/ast.json | grep type | grep AST_ | \
 		cut -d\" -f4 | sort | uniq > nodes-ast.tmp
-	$(QUIET)cat verilator/src/ast.cpp | sed 's/||/\n/g' | \
+	$(QUIET)cat verilator/src/JsonAst.cpp | sed 's/||/\n/g' | \
 		grep 'type ==' | grep AST_ | cut -d\" -f2 | \
 		sort | uniq > nodes-veri.tmp
 	$(QUIET)comm -23 nodes-ast.tmp nodes-veri.tmp
