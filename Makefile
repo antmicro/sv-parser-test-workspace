@@ -1,5 +1,7 @@
 TESTS = $(shell ls tests/*.sv | cut -d\/ -f2 | cut -d\. -f1)
 
+QUIET ?= @
+
 all:
 	@echo "Availble tests: $(TESTS)"
 
@@ -69,3 +71,35 @@ build-verilator:
 	(cd verilator/src && make ../bin/verilator_bin)
 
 veri: build-verilator image/bin/verilator
+
+missing-nodes:
+	$(QUIET)cat build/ast.json | grep type | grep AST_ | \
+		cut -d\" -f4 | sort | uniq > nodes-ast.tmp
+	$(QUIET)cat verilator/src/ast.cpp | sed 's/||/\n/g' | \
+		grep 'type ==' | grep AST_ | cut -d\" -f2 | \
+		sort | uniq > nodes-veri.tmp
+	$(QUIET)comm -23 nodes-ast.tmp nodes-veri.tmp
+	$(QUIET)rm -f nodes-ast.tmp nodes-veri.tmp
+
+# PicoRV32 test
+prv32-sv:
+	../$(VERILATOR) \
+		--cc --exe --trace --top-module top \
+		-Mdir build \
+		prv32/top.sv prv32/picorv32.v prv32/main.cpp
+	make -C build -f Vtop.mk
+	(cd build && ./Vtop)
+
+prv32-ast:
+	mkdir build
+	(cd build && ../$(YOSYS) \
+		-p 'read_verilog -dump_ast1 ../prv32/top.sv' \
+		-p 'read_verilog -dump_ast1 ../prv32/picorv32.v')
+	./merge.py build/ast.json \
+		build/picorv32.json \
+		build/top.json
+	./$(VERILATOR) \
+		--cc --exe --trace -top-module top \
+		-Mdir build \
+		--json-ast build/ast.json prv32/main.cpp
+	(cd build && ./Vtop)
