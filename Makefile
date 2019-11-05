@@ -83,7 +83,7 @@ missing-nodes:
 
 # PicoRV32 test
 prv32-sv:
-	../$(VERILATOR) \
+	./$(VERILATOR) \
 		--cc --exe --trace --top-module top \
 		-Mdir build \
 		prv32/top.sv prv32/picorv32.v prv32/main.cpp
