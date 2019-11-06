@@ -88,6 +88,7 @@ prv32-sv:
 		-Mdir build \
 		prv32/top.sv prv32/picorv32.v prv32/main.cpp
 	make -C build -f Vtop.mk
+	[ -f prv32/firmware/firm.bin ] && cp prv32/firmware/firm.bin build/mem.bin || true
 	(cd build && ./Vtop)
 
 prv32-ast:
@@ -102,4 +103,5 @@ prv32-ast:
 		--cc --exe --trace -top-module top \
 		-Mdir build \
 		--json-ast build/ast.json prv32/main.cpp
+	[ -f prv32/firmware/firm.bin ] && cp prv32/firmware/firm.bin build/mem.bin || true
 	(cd build && ./Vtop)
