@@ -102,6 +102,7 @@ prv32-ast:
 	./$(VERILATOR) \
 		--cc --exe --trace -top-module top \
 		-Mdir build \
+		-Wno-WIDTH -Wno-CASEINCOMPLETE -Wno-PINMISSING -Wno-SELRANGE -Wno-CASEOVERLAP \
 		--json-ast build/ast.json prv32/main.cpp
 	make -C build -f Vtop.mk
 	[ -f prv32/firmware/firm.bin ] && cp prv32/firmware/firm.bin build/mem.bin || true
