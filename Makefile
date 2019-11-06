@@ -103,5 +103,6 @@ prv32-ast:
 		--cc --exe --trace -top-module top \
 		-Mdir build \
 		--json-ast build/ast.json prv32/main.cpp
+	make -C build -f Vtop.mk
 	[ -f prv32/firmware/firm.bin ] && cp prv32/firmware/firm.bin build/mem.bin || true
 	(cd build && ./Vtop)
