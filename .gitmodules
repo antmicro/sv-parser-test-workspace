@@ -4,3 +4,6 @@
 [submodule "yosys"]
 	path = yosys
 	url = https://github.com/antmicro/yosys.git
+[submodule "prv32/picorv32"]
+	path = prv32/picorv32
+	url = https://github.com/cliffordwolf/picorv32.git

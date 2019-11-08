@@ -86,7 +86,7 @@ prv32-sv:
 	./$(VERILATOR) \
 		--cc --exe --trace --top-module top \
 		-Mdir build \
-		prv32/top.sv prv32/picorv32.v prv32/main.cpp
+		prv32/top.sv prv32/picorv32/picorv32.v prv32/main.cpp
 	make -C build -f Vtop.mk
 	[ -f prv32/firmware/firm.bin ] && cp prv32/firmware/firm.bin build/mem.bin || true
 	(cd build && ./Vtop)
@@ -95,7 +95,7 @@ prv32-ast:
 	mkdir build
 	(cd build && ../$(YOSYS) \
 		-p 'read_verilog -dump_ast1 ../prv32/top.sv' \
-		-p 'read_verilog -dump_ast1 ../prv32/picorv32.v')
+		-p 'read_verilog -dump_ast1 ../prv32/picorv32/picorv32.v')
 	./merge.py build/ast.json \
 		build/picorv32.json \
 		build/top.json
