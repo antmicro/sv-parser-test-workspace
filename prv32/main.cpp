@@ -29,7 +29,7 @@ main(int argc, char** argv, char** env)
 	FILE *mem = fopen("mem.bin", "r");
 
 	bool keep_going = true;
-	while (!Verilated::gotFinish() && (main_time < 3000) && keep_going) {
+	while (!Verilated::gotFinish() && (main_time < 4000) && keep_going) {
 		top->eval();
 		tfp->dump(main_time);
 

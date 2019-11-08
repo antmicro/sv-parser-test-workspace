@@ -13,7 +13,34 @@ module top (
 );
 
 
-picorv32 picorv32_core (
+picorv32 #(
+	.ENABLE_COUNTERS		(0),
+	.ENABLE_COUNTERS64		(0),
+	.ENABLE_REGS_16_31		(0),
+	.ENABLE_REGS_DUALPORT	(0),
+	.LATCHED_MEM_RDATA		(0),
+	.TWO_STAGE_SHIFT		(1),
+	.BARREL_SHIFTER			(0),
+	.TWO_CYCLE_COMPARE		(1),
+	.TWO_CYCLE_ALU			(1),
+	.COMPRESSED_ISA			(0),
+	.CATCH_MISALIGN			(0),
+	.CATCH_ILLINSN			(0),
+	.ENABLE_PCPI			(0),
+	.ENABLE_MUL				(0),
+	.ENABLE_FAST_MUL		(0),
+	.ENABLE_DIV				(0),
+	.ENABLE_IRQ				(0),
+	.ENABLE_IRQ_QREGS		(0),
+	.ENABLE_IRQ_TIMER		(0),
+	.ENABLE_TRACE			(0),
+	.REGS_INIT_ZERO			(0),
+	.MASKED_IRQ				(32'h 0000_0000),
+	.LATCHED_IRQ			(32'h ffff_ffff),
+	.PROGADDR_RESET			(32'h 0000_0000),
+	.PROGADDR_IRQ			(32'h 0000_0010),
+	.STACKADDR				(32'h ffff_ffff)
+) picorv32_core (
 	.clk(clk),
 	.resetn(resetn),
 	.trap(),
