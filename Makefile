@@ -1,4 +1,4 @@
-TESTS = $(shell ls tests/*.sv | cut -d\/ -f2 | cut -d\. -f1)
+TESTS = $(shell find tests -name *.sv | cut -d\/ -f2 | sort)
 
 QUIET ?= @
 
@@ -32,31 +32,36 @@ VERILATOR = ./image/bin/verilator
 YOSYS = ./yosys/yosys
 
 define template
-$(1)-sv: tests/$(1).sv
+$(1)-sv: tests/$(1)/$(1).sv tests/$(1)/$(1).cpp
+	rm -rf build
 	$(VERILATOR) \
 		--trace --cc --exe -Mdir build \
 		$$< sim.cpp
-	cat main.cpp | sed 's/%TOP_MODULE%/$(1)/g' > build/sim.cpp
+	cat tests/$(1)/$(1).cpp | sed 's/%TOP_MODULE%/$(1)/g' > build/sim.cpp
 	make -C build -f V$(1).mk
 	(cd build && ./V$(1))
 
-$(1)-sv-xml: tests/$(1).sv
+$(1)-sv-xml: tests/$(1)/$(1).sv
+	rm -rf build
 	$(VERILATOR) --cc --xml-only -Mdir build $$<
 
-$(1)-ast: tests/$(1).sv
+$(1)-ast: tests/$(1)/$(1).sv tests/$(1)/$(1).cpp
+	rm -rf build
 	mkdir build
 	(cd build && ../$(YOSYS) -p \
-		'read_verilog -dump_ast1 ../$$<')
+		'read_verilog -dump_ast1 ../tests/$(1)/$(1).sv')
 	./merge.py build/ast.json build/*.json
 	$(VERILATOR) \
 		--trace --cc --exe -Mdir build \
 		--top-module top \
+		-Wno-CASEINCOMPLETE \
 		--json-ast build/ast.json sim.cpp
-	cat main.cpp | sed 's/%TOP_MODULE%/top/g' > build/sim.cpp
+	cat tests/$(1)/$(1).cpp | sed 's/%TOP_MODULE%/top/g' > build/sim.cpp
 	make -C build -f Vtop.mk
 	(cd build && ./Vtop)
 
-$(1)-ast-xml: tests/$(1).sv
+$(1)-ast-xml: tests/$(1)/$(1).sv
+	rm -rf build
 	mkdir build
 	(cd build && ../$(YOSYS) -p \
 		'read_verilog -dump_ast1 ../$$<')
@@ -83,6 +88,7 @@ missing-nodes:
 
 # PicoRV32 test
 prv32-sv:
+	rm -rf build
 	./$(VERILATOR) \
 		--cc --exe --trace --top-module top \
 		-Mdir build \
@@ -92,6 +98,7 @@ prv32-sv:
 	(cd build && ./Vtop)
 
 prv32-ast:
+	rm -rf build
 	mkdir build
 	(cd build && ../$(YOSYS) \
 		-p 'read_verilog -dump_ast1 ../prv32/top.sv' \

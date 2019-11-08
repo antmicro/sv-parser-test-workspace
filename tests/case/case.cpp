@@ -31,10 +31,14 @@ main(int argc, char** argv, char** env)
 		if (main_time % 10 == 0)
 			top->c = !top->c;
 
-		if (main_time == 22) top->d = 1;
-		if (main_time == 42) top->d = 2;
-		if (main_time == 62) top->d = 3;
-		if (main_time == 82) top->d = 0;
+		if (main_time == 24)
+			top->d = 1;
+
+		if (main_time == 44)
+			top->d = 2;
+
+		if (main_time == 64)
+			top->d = 3;
 	}
 
 	top->final();

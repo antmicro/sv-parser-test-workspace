@@ -6,14 +6,16 @@ module top (
 
 wire q_a, q_b;
 
-dff dff_a (.c(c), .d(d[0]), .q(q_a));
-dff dff_b (.c(c), .d(d[1]), .q(q_b));
+dff #( .NEGATE(1'b0) ) dff_a (.c(c), .d(d[0]), .q(q_a));
+dff #( .NEGATE(1'b0) ) dff_b (.c(c), .d(d[1]), .q(q_b));
 
 assign q = q_a & q_b;
 
 endmodule
 
-module dff (
+module dff #(
+	parameter [0:0] NEGATE = 1'b0
+) (
 	input c,
 	input d,
 	output q
@@ -23,7 +25,10 @@ reg t; initial t = 1'b0;
 
 always @(posedge c)
 begin
-	t <= d;
+	if (NEGATE)
+		t <= ~d;
+	else
+		t <=  d;
 end
 
 assign q = t;
