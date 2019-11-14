@@ -1,5 +1,9 @@
 TESTS = $(shell find tests -name *.sv | cut -d\/ -f2 | sort)
 
+BAZEL_URL = https://github.com/bazelbuild/bazel/releases/download/1.1.0/bazel-1.1.0-dist.zip
+VERIBLE_PARSER ?= $(PWD)/verible/bazel-bin/verilog/tools/syntax/verilog_syntax
+BAZEL_BIN ?= $(PWD)/bazel/output/bazel
+
 QUIET ?= @
 
 all:
@@ -68,6 +72,22 @@ $(1)-ast-xml: tests/$(1)/$(1).sv
 	./merge.py build/ast.json build/*.json
 	$(VERILATOR) \
 		--cc --xml-only -Mdir build --top-module top --json-ast build/ast.json
+
+$(1)-vp $(1)-verible-parser: tests/$(1)/$(1).sv
+	rm -rf build
+	mkdir build
+	(cd build && \
+		$(VERIBLE_PARSER) -printtree ../$$< && mv dump.json verible.json)
+	(cd build && ../v2j.py --input=verible.json --output=ast.json)
+	$(VERILATOR) \
+		--trace --cc --exe -Mdir build \
+		--top-module top \
+		-Wno-CASEINCOMPLETE \
+		--json-ast build/ast.json sim.cpp
+	cat tests/$(1)/$(1).cpp | sed 's/%TOP_MODULE%/top/g' > build/sim.cpp
+	make -C build -f Vtop.mk
+	(cd build && ./Vtop)
+
 endef
 
 $(foreach f,$(TESTS),$(eval $(call template,$(f))))
@@ -114,3 +134,32 @@ prv32-ast:
 	make -C build -f Vtop.mk
 	[ -f prv32/firmware/firm.bin ] && cp prv32/firmware/firm.bin build/mem.bin || true
 	(cd build && ./Vtop)
+
+# ------------- BAZEL -----------
+bazel/.dir:
+	mkdir bazel && touch $@
+
+bazel/src.zip: bazel/.dir
+	wget -O $@ -c "$(BAZEL_URL)" && touch $@
+
+bazel/.unpack: bazel/src.zip
+	(cd bazel && unzip src.zip) && touch $@
+
+bazel/.compile: bazel/.unpack
+	(cd bazel && \
+		env EXTRA_BAZEL_ARGS="--host_javabase=@local_jdk//:jdk" \
+		bash ./compile.sh) && touch $@
+
+build-bazel: bazel/.compile
+
+verible/verilog/CST/json.hpp: verilator/src/json.hpp
+	cp $< $@
+
+verible/.patch: verible.patch
+	(cd verible && patch -Np1 < ../$<) && touch $@
+
+build-verible-parser verible/bazel-bin/verilog/tools/syntax/verilog_syntax: \
+		verible/verilog/CST/json.hpp verible/.patch
+	(cd verible && $(BAZEL_BIN) build \
+		--cxxopt='-std=c++17' \
+		//verilog/tools/syntax:verilog_syntax)

@@ -1,3 +1,4 @@
 *.swp
 image/
 build/
+bazel/

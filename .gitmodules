@@ -7,3 +7,7 @@
 [submodule "prv32/picorv32"]
 	path = prv32/picorv32
 	url = https://github.com/cliffordwolf/picorv32.git
+[submodule "verible"]
+	path = verible
+	url = https://github.com/google/verible.git
+	ignore = untracked
