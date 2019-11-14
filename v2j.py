@@ -334,6 +334,42 @@ class CstConstant(CstNode):
 			str(self.value) + ' )'
 
 
+class CstUnary(CstNode):
+	expr = None
+	utype = None
+
+	class Xform:
+		parent = None
+
+		def __init__(self, _parent):
+			self.parent = _parent
+
+		@visitor(CstNode)
+		def visit(self, node):
+			for n in node.itsNodes:
+				self.visit(n)
+
+			if node.token:
+				tokid, tokval = parseToken(node.token)
+
+				if None: pass
+
+				elif tokid == 126:
+					self.parent.utype = 'not'
+
+		@visitor(CstUnqNameNode)
+		def visit(self, node):
+			self.parent.expr = node
+
+
+	def __init__(self, node):
+		self.Xform(self).visit(node)
+		#self.expr = node.itsNodes[0]
+
+	def __str__(self):
+		return 'UNARY( ' + str(self.utype).upper() + ' , ' + str(self.expr) + ' )'
+
+
 class DumpVisitor:
 	lvl = 0
 
@@ -506,6 +542,9 @@ class XformNodes(Visitor):
 
 		elif node.itsType == 'kAlwaysStatement':
 			return CstAlways(node)
+
+		elif node.itsType == 'kUnaryPrefixExpression':
+			return CstUnary(node)
 
 		# simplify
 		elif len(node.itsNodes) == 1 and len(node.itsNodes[0].itsNodes) == 0:
@@ -680,6 +719,14 @@ class JsonVisitor(Visitor):
 		_r['nodes'] = []
 		_r['nodes'].append(self.visit(node.lp))
 		_r['nodes'].append(self.visit(node.rp))
+		return _r
+
+	@visitor(CstUnary)
+	def visit(self, node):
+		_r = dict()
+		_r['type'] = 'AST_BIT_NOT'
+		_r['nodes'] = []
+		_r['nodes'].append(self.visit(node.expr))
 		return _r
 
 
