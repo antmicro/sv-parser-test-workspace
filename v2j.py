@@ -85,7 +85,7 @@ class CstUnqNameNode(CstNode):
 		self.name = _name
 
 	def __str__(self):
-		return self.name
+		return 'UNQ( ' + self.name + ' )'
 
 
 class CstPortInputType(CstNode):
@@ -115,12 +115,17 @@ class CstContAssign(CstNode):
 	lp = None
 	rp = None
 
-	def __init__(self, _lp, _rp):
-		self.lp = _lp
-		self.rp = _rp
+	def __init__(self, node):
+		for _n in node.itsNodes:
+			if _n.itsType == 'kLPValue':
+				self.lp = _n.itsNodes[0]
+
+			elif _n.itsType == 'kExpression':
+				self.rp = _n.itsNodes[0]
 
 	def __str__(self):
 		return str(self.lp) + ' = ' + str(self.rp)
+
 
 class CstModule(CstNode):
 	body  = None
@@ -150,9 +155,13 @@ class CstEqAssign(CstNode):
 	lp = None
 	rp = None
 
-	def __init__(self, _lp, _rp):
-		self.lp = _lp
-		self.rp = _rp
+	def __init__(self, _node):
+		for _n in _node.itsNodes:
+			if _n.itsType == 'kLPValue':
+				self.lp = _n.itsNodes[0]
+
+			elif _n.itsType == 'kExpression':
+				self.rp = _n.itsNodes[0]
 
 	def __str__(self):
 		return str(self.lp) + ' = ' + str(self.rp)
@@ -198,9 +207,13 @@ class CstDelayAssign(CstNode):
 	lp = None
 	rp = None
 
-	def __init__(self, _lp, _rp):
-		self.lp = _lp
-		self.rp = _rp
+	def __init__(self, _node):
+		for _n in _node.itsNodes:
+			if _n.itsType == 'kLPValue':
+				self.lp = _n.itsNodes[0]
+
+			elif _n.itsType == 'kExpression':
+				self.rp = _n.itsNodes[0]
 
 	def __str__(self):
 		return str(self.lp) + ' <= ' + str(self.rp)
@@ -370,6 +383,44 @@ class CstUnary(CstNode):
 		return 'UNARY( ' + str(self.utype).upper() + ' , ' + str(self.expr) + ' )'
 
 
+class CstBinary(CstNode):
+	lhs = None
+	rhs = None
+	btype = None
+
+	class Xform:
+		parent = None
+
+		def __init__(self, _parent):
+			self.parent = _parent
+
+		@visitor(CstNode)
+		def visit(self, node):
+			for n in node.itsNodes:
+				self.visit(n)
+
+			if node.token:
+				tokid, tokval = parseToken(node.token)
+
+				if tokid == 38: # and "&" operator
+					self.parent.btype = 'and'
+
+		@visitor(CstUnqNameNode)
+		def visit(self, node):
+			if not self.parent.lhs:
+				self.parent.lhs = node
+			elif not self.parent.rhs:
+				self.parent.rhs = node
+				return
+
+	def __init__(self, _node):
+		self.Xform(self).visit(_node)
+
+	def __str__(self):
+		return 'BINARY( ' + str(self.btype) + \
+			' , ' + str(self.lhs) + ' , ' + str(self.rhs) + ' )'
+
+
 class DumpVisitor:
 	lvl = 0
 
@@ -488,6 +539,7 @@ class RemoveNotUsedNodes(Visitor):
 	def visit(self, node):
 		if   node.itsType == 'kDataType': return None
 		elif node.itsType == 'kUnpackedDimensions': return None
+		elif node.itsType == 'kPackedDimensions': return None
 
 		return self.visitNodes(node)
 
@@ -508,11 +560,8 @@ class XformNodes(Visitor):
 		elif node.itsType == 'kDescriptionList':
 			return CstTop(_ns.itsNodes)
 
-		elif node.itsType == 'kContinuousAssignmentStatement':
-			return CstContAssign(node.itsNodes[0], node.itsNodes[1])
-
 		elif node.itsType == 'kNonblockingAssignmentStatement':
-			return CstDelayAssign(node.itsNodes[0], node.itsNodes[1])
+			return CstDelayAssign(node)
 
 		elif node.itsType == 'kModuleDeclaration':
 			header = node.itsNodes[0]
@@ -529,13 +578,10 @@ class XformNodes(Visitor):
 			return CstConstant(node)
 
 		elif node.itsType == 'kAssignmentStatement':
-			return CstEqAssign(node.itsNodes[0], node.itsNodes[1])
+			return CstEqAssign(node)
 
 		elif node.itsType == 'kInitialStatement':
 			return CstInitial(node)
-
-		elif node.itsType == 'kInstantiationBase':
-			return CstWire(node)
 
 		elif node.itsType == 'kEventExpression':
 			return CstEdge(node)
@@ -543,12 +589,69 @@ class XformNodes(Visitor):
 		elif node.itsType == 'kAlwaysStatement':
 			return CstAlways(node)
 
-		elif node.itsType == 'kUnaryPrefixExpression':
-			return CstUnary(node)
-
 		# simplify
-		elif len(node.itsNodes) == 1 and len(node.itsNodes[0].itsNodes) == 0:
-			return node.itsNodes[0]
+		#elif len(node.itsNodes) == 1 and len(node.itsNodes[0].itsNodes) == 0:
+		#	return node.itsNodes[0]
+
+		return _ns
+
+
+class SimpleXform(Visitor):
+
+	@visitor(CstNode)
+	def visit(self, node):
+		_ns = self.visitNodes(node)
+		_0 = node
+
+		if None: pass
+
+		#
+		# Collapse structure:
+		#
+		# kReferenceCallBase
+		#   kReference
+		#     kLocalRoot
+		#       kUnqualifiedId
+		#
+		# into CstUnqNameNode
+		#
+		if len(_0.itsNodes) == 1 and _0.itsType == 'kReferenceCallBase':
+			_1 = _0.itsNodes[0]
+			if len(_1.itsNodes) == 1 and _1.itsType == 'kReference':
+				_2 = _1.itsNodes[0]
+				if len(_2.itsNodes) == 1 and _2.itsType == 'kLocalRoot':
+					_3 = _2.itsNodes[0]
+					if len(_3.itsNodes) == 1 and _3.itsType == 'kUnqualifiedId':
+						_4 = _3.itsNodes[0]
+						return CstUnqNameNode(_4.name)
+
+		#
+		# Collapse structure:
+		#
+		# kContinuousAssign
+		#  kAssignmentList
+		#   kContinuousAssignmentStatement
+		#
+		# into CstContAssign
+		#
+		elif len(_0.itsNodes) == 1 and _0.itsType == 'kContinuousAssign':
+			_1 = _0.itsNodes[0]
+			if len(_1.itsNodes) and _1.itsType == 'kAssignmentList':
+				_2 = _1.itsNodes[0]
+				if len(_2.itsNodes) == 2 and _2.itsType == 'kContinuousAssignmentStatement':
+					return CstContAssign(_2)
+
+
+		elif len(_0.itsNodes) == 1 and _0.itsType == 'kDataDeclaration':
+			_1 = _0.itsNodes[0]
+			if len(_1.itsNodes) and _1.itsType == 'kInstantiationBase':
+				return CstWire(_1)
+
+		elif _0.itsType == 'kBinaryExpression':
+			return CstBinary(_0)
+
+		elif _0.itsType == 'kUnaryPrefixExpression':
+			return CstUnary(_0)
 
 		return _ns
 
@@ -625,7 +728,6 @@ class JsonVisitor(Visitor):
 		_r['port'] = str(node.portDir)
 		_r['name'] = str(node.portName)
 		_r['type'] = 'AST_WIRE'
-		#print('J: ' + str(_r))
 		return _r
 
 	@visitor(CstTop)
@@ -724,9 +826,24 @@ class JsonVisitor(Visitor):
 	@visitor(CstUnary)
 	def visit(self, node):
 		_r = dict()
-		_r['type'] = 'AST_BIT_NOT'
+
+		if node.utype.lower() == 'not':
+			_r['type'] = 'AST_BIT_NOT'
+
 		_r['nodes'] = []
 		_r['nodes'].append(self.visit(node.expr))
+		return _r
+
+	@visitor(CstBinary)
+	def visit(self, node):
+		_r = dict()
+
+		if node.btype.lower() == 'and':
+			_r['type'] = 'AST_BIT_AND'
+
+		_r['nodes'] = []
+		_r['nodes'].append(self.visit(node.lhs))
+		_r['nodes'].append(self.visit(node.rhs))
 		return _r
 
 
@@ -754,6 +871,7 @@ def main():
 	parser.add_argument('--output')
 	parser.add_argument('--dump1', action='store_const', const=True, default=False)
 	parser.add_argument('--dump2', action='store_const', const=True, default=False)
+	parser.add_argument('--skip-xform', action='store_const', const=True, default=False)
 	args = parser.parse_args()
 
 	cst = None
@@ -763,7 +881,9 @@ def main():
 	x = CstTopWrap(parse(cst))
 	RemoveOrXformMiscTokens().visit(x)
 	RemoveNotUsedNodes().visit(x)
-	XformNodes().visit(x)
+	SimpleXform().visit(x)
+	if not args.skip_xform:
+		XformNodes().visit(x)
 
 	if args.dump1:
 		DumpVisitor().visit(x)
