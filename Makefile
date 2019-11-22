@@ -77,7 +77,7 @@ $(1)-vp $(1)-verible-parser: tests/$(1)/$(1).sv
 	rm -rf build
 	mkdir build
 	(cd build && \
-		$(VERIBLE_PARSER) -printtree ../$$< && mv dump.json verible.json)
+		$(VERIBLE_PARSER) -printtree ../$$<)
 	(cd build && ../v2j.py --input=verible.json --output=ast.json)
 	$(VERILATOR) \
 		--trace --cc --exe -Mdir build \
@@ -152,14 +152,7 @@ bazel/.compile: bazel/.unpack
 
 build-bazel: bazel/.compile
 
-verible/verilog/CST/json.hpp: verilator/src/json.hpp
-	cp $< $@
-
-verible/.patch: verible.patch
-	(cd verible && patch -Np1 < ../$<) && touch $@
-
-build-verible-parser verible/bazel-bin/verilog/tools/syntax/verilog_syntax: \
-		verible/verilog/CST/json.hpp verible/.patch
+build-verible-parser:
 	(cd verible && $(BAZEL_BIN) build \
 		--cxxopt='-std=c++17' \
 		//verilog/tools/syntax:verilog_syntax)
