@@ -88,6 +88,22 @@ $(1)-vp $(1)-verible-parser: tests/$(1)/$(1).sv
 	make -C build -f Vtop.mk
 	(cd build && ./Vtop)
 
+define yosys_$(1)_script
+read_jsonast ast.json
+prep -top top
+sim -clock c -resetn d -rstlen 10 -vcd dump.vcd
+endef
+
+export yosys_$(1)_script
+
+$(1)-yosys: tests/$(1)/$(1).sv
+	rm -rf build
+	mkdir build
+	(cd build && $(VERIBLE_PARSER) -printtree ../$$<)
+	(cd build && ../v2j.py --input=verible.json --output=ast.json)
+	(cd build && echo "$$$$yosys_$(1)_script" > yosys_$(1)_script)
+	(cd build && ../$(YOSYS) -s yosys_$(1)_script)
+
 endef
 
 $(foreach f,$(TESTS),$(eval $(call template,$(f))))
