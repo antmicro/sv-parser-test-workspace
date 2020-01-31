@@ -11,3 +11,4 @@
 	path = verible
 	url = https://github.com/google/verible.git
 	ignore = untracked
+	branch = master
