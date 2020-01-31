@@ -2,7 +2,22 @@ TESTS = $(shell find tests -name *.sv | cut -d\/ -f2 | sort)
 
 BAZEL_URL = https://github.com/bazelbuild/bazel/releases/download/1.1.0/bazel-1.1.0-dist.zip
 VERIBLE_PARSER ?= $(PWD)/verible/bazel-bin/verilog/tools/syntax/verilog_syntax
-BAZEL_BIN ?= $(PWD)/bazel/output/bazel
+
+BAZEL_BIN = $(shell which bazel)
+ifeq ($(BAZEL_BIN),)
+BAZEL_BIN = $(PWD)/bazel/output/bazel
+endif
+
+BAZEL = $(BAZEL_BIN)
+VERIBLE_FLAGS = --cxxopt=-std=c++17
+
+ifneq ($(VERIBLE_DEBUG),)
+VERIBLE_FLAGS += \
+	--copt=-g3 --copt=-ggdb \
+	--copt=-g3 --cxxopt=-ggdb \
+	--linkopt=-g3 --linkopt=-ggdb \
+	--strip=never
+endif
 
 QUIET ?= @
 
@@ -168,7 +183,62 @@ bazel/.compile: bazel/.unpack
 
 build-bazel: bazel/.compile
 
-build-verible-parser:
-	(cd verible && $(BAZEL_BIN) build \
-		--cxxopt='-std=c++17' \
-		//verilog/tools/syntax:verilog_syntax)
+# ------------ Verible ---------
+verible/tags:
+	(cd verible && ctags -R common/ verilog/)
+
+verible/build:
+	(cd verible && $(BAZEL) \
+		--output_user_root=$(PWD)/cache \
+		build \
+		$(VERIBLE_FLAGS) \
+		//...)
+
+verible/test:
+	(cd verible && $(BAZEL) \
+		--output_user_root=$(PWD)/cache \
+		test \
+		$(VERIBLE_FLAGS) \
+		//...)
+
+COVERAGE_REPORT_GENERATOR = \
+	/tools/test/CoverageOutputGenerator/java/com/google/devtools/coverageoutputgenerator
+
+verible/coverage:
+	(cd verible && $(BAZEL) \
+		--output_user_root=$(PWD)/cache \
+		coverage -s \
+		$(VERIBLE_FLAGS) \
+		--instrument_test_targets \
+		--experimental_cc_coverage \
+		--combined_report=lcov \
+		--coverage_report_generator=@bazel_tools/$(COVERAGE_REPORT_GENERATOR):Main \
+		//...)
+
+verible/coverage/report:
+	(cd verible && \
+		genhtml -o coverage_report bazel-out/_coverage/_coverage_report.dat)
+
+verible/coverage/report/view:
+	(cd verible/coverage_report && chromium-browser \
+		--user-data-dir=$$PWD/cr.work \
+		--app="file://$$PWD/index.html" >/dev/null 2>/dev/null) &
+
+verible/cov:
+	make -C . --no-print-directory verible/coverage
+	make -C . --no-print-directory verible/coverage/report >/dev/null
+
+verible/cov/view:
+	make -C . --no-print-directory verible/cov
+	make -C . --no-print-directory verible/coverage/report/view
+
+verible/clean:
+	rm -rf verible/coverage_report
+	rm -f verible/tags
+	(cd verible && $(BAZEL) \
+		--output_user_root=$(PWD)/cache \
+		clean)
+
+verible/distclean: verible/clean
+	chmod -R 755 cache
+	rm -rf cache
