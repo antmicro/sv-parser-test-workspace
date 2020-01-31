@@ -9,5 +9,5 @@
 	url = https://github.com/cliffordwolf/picorv32.git
 [submodule "verible"]
 	path = verible
-	url = https://github.com/antmicro/verible.git
+	url = https://github.com/google/verible.git
 	ignore = untracked
