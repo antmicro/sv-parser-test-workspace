@@ -242,3 +242,42 @@ verible/clean:
 verible/distclean: verible/clean
 	chmod -R 755 cache
 	rm -rf cache
+
+# ------------ Surelog ------------ 
+surelog/listener: test_listener
+
+test_listener:
+	g++ -std=c++14 uhdm/tests/test_listener.cpp \
+		-I/usr/local/include/uhdm \
+		-I/usr/local/include/uhdm/include /usr/local/lib/uhdm/libuhdm.a \
+		-lcapnp -lkj -ldl -lutil -lm -lrt -lpthread \
+		-o test_listener
+
+surelog/parse:
+	Surelog/build/dist/Release/hellosureworld -parse ./dff.sv
+	cp slpp_all/surelog.uhdm ./dff.uhdm
+
+# ------------ UHDM ------------ 
+uhdm/clean:
+	rm -rf test_listener read_dff obj_dir slpp_all
+
+uhdm/restore: surelog/listener surelog/parse
+	./test_listener dff.uhdm
+
+uhdm/print: surelog/parse read_dff
+	./read_dff dff.uhdm
+
+uhdm/app: read_dff
+
+read_dff:
+	g++ -g -std=c++14 empty_design.cpp \
+		-I/usr/local/include/uhdm \
+		-I/usr/local/include/uhdm/include \
+		/usr/local/lib/uhdm/libuhdm.a \
+		-lcapnp -lkj -ldl -lutil -lm -lrt -lpthread \
+		-o read_dff
+
+uhdm/verilator/dff:
+	./image/bin/verilator --cc dff.sv --exe dff_main.cpp
+	make -j -C obj_dir -f Vdff.mk Vdff
+	obj_dir/Vdff

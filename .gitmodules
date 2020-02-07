@@ -12,3 +12,6 @@
 	url = https://github.com/google/verible.git
 	ignore = untracked
 	branch = master
+[submodule "uhdm"]
+	path = uhdm
+	url = https://github.com/alainmarcel/UHDM.git
