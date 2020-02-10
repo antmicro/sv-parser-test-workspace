@@ -261,6 +261,11 @@ surelog/parse:
 uhdm/clean:
 	rm -rf test_listener read_dff obj_dir slpp_all
 
+uhdm/build:
+	mkdir -p uhdm/build
+	(cd uhdm/build && cmake -DCMAKE_INSTALL_PREFIX=$(PWD)/image -D_GLIBCXX_DEBUG=1 -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS='-D_GLIBCXX_USE_CXX11_ABI=1 -DWITH_LIBCXX=Off' ../)
+	(cd uhdm && make install)
+
 uhdm/restore: surelog/listener surelog/parse
 	./test_listener dff.uhdm
 
@@ -274,10 +279,19 @@ read_dff:
 		-I/usr/local/include/uhdm \
 		-I/usr/local/include/uhdm/include \
 		/usr/local/lib/uhdm/libuhdm.a \
+		-L$(PWD)/image/lib \
 		-lcapnp -lkj -ldl -lutil -lm -lrt -lpthread \
 		-o read_dff
+
+uhdm/verilator/build: uhdm/build image/bin/verilator
 
 uhdm/verilator/dff:
 	./image/bin/verilator --cc dff.sv --exe dff_main.cpp
 	make -j -C obj_dir -f Vdff.mk Vdff
 	obj_dir/Vdff
+
+uhdm/verilator/test-ast: uhdm/verilator/build surelog/parse
+	./image/bin/verilator --uhdm-ast --cc dff.uhdm --exe dff_main.cpp
+	# Uncomment once AST is built
+	# make -j -C obj_dir -f Vdff.mk Vdff
+	# obj_dir/Vdff
