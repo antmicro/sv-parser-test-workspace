@@ -15,3 +15,6 @@
 [submodule "uhdm"]
 	path = uhdm
 	url = https://github.com/alainmarcel/UHDM.git
+[submodule "Surelog"]
+	path = Surelog
+	url = https://github.com/alainmarcel/Surelog.git
