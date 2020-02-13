@@ -244,6 +244,11 @@ verible/distclean: verible/clean
 	rm -rf cache
 
 # ------------ Surelog ------------ 
+surelog: Surelog/build/dist/Release/hellosureworld
+
+Surelog/build/dist/Release/hellosureworld:
+	(cd Surelog && make)
+
 surelog/listener: test_listener
 
 test_listener:
@@ -253,7 +258,7 @@ test_listener:
 		-lcapnp -lkj -ldl -lutil -lm -lrt -lpthread \
 		-o test_listener
 
-surelog/parse:
+surelog/parse: surelog
 	Surelog/build/dist/Release/hellosureworld -parse ./dff.sv
 	cp slpp_all/surelog.uhdm ./dff.uhdm
 
@@ -263,7 +268,12 @@ uhdm/clean:
 
 uhdm/build:
 	mkdir -p uhdm/build
-	(cd uhdm/build && cmake -DCMAKE_INSTALL_PREFIX=$(PWD)/image -D_GLIBCXX_DEBUG=1 -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS='-D_GLIBCXX_USE_CXX11_ABI=1 -DWITH_LIBCXX=Off' ../)
+	(cd uhdm/build && cmake \
+		-DCMAKE_INSTALL_PREFIX=$(PWD)/image \
+		-D_GLIBCXX_DEBUG=1 \
+		-DCMAKE_BUILD_TYPE=Release \
+		-DCMAKE_CXX_FLAGS='-D_GLIBCXX_USE_CXX11_ABI=1 -DWITH_LIBCXX=Off' \
+		../)
 	(cd uhdm && make install)
 
 uhdm/restore: surelog/listener surelog/parse
@@ -290,8 +300,13 @@ uhdm/verilator/dff:
 	make -j -C obj_dir -f Vdff.mk Vdff
 	obj_dir/Vdff
 
+uhdm/verilator/get-ast:
+	./image/bin/verilator --cc dff.sv --exe dff_main.cpp --xml-only
+
+uhdm/verilator/ast-xml: uhdm/verilator/build surelog/parse
+	./image/bin/verilator --uhdm-ast --cc dff.uhdm --exe dff_simple.cpp --xml-only
+
 uhdm/verilator/test-ast: uhdm/verilator/build surelog/parse
-	./image/bin/verilator --uhdm-ast --cc dff.uhdm --exe dff_main.cpp
-	# Uncomment once AST is built
-	# make -j -C obj_dir -f Vdff.mk Vdff
-	# obj_dir/Vdff
+	./image/bin/verilator --uhdm-ast --cc dff.uhdm --exe dff_main.cpp --trace
+	 make -j -C obj_dir -f Vdff.mk Vdff
+	 obj_dir/Vdff
