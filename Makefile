@@ -1,4 +1,5 @@
 TESTS = $(shell find tests -name *.sv | cut -d\/ -f2 | sort)
+TEST ?= tests/onenet
 
 BAZEL_URL = https://github.com/bazelbuild/bazel/releases/download/1.1.0/bazel-1.1.0-dist.zip
 VERIBLE_PARSER ?= $(PWD)/verible/bazel-bin/verilog/tools/syntax/verilog_syntax
@@ -259,10 +260,11 @@ test_listener:
 		-o test_listener
 
 surelog/parse: surelog
-	Surelog/build/dist/Release/hellosureworld -parse ./dff.sv
-	cp slpp_all/surelog.uhdm ./dff.uhdm
+	Surelog/build/dist/Release/hellosureworld -parse $(TEST)/top.sv
+	cp slpp_all/surelog.uhdm $(TEST)/top.uhdm
 
 # ------------ UHDM ------------ 
+
 uhdm/clean:
 	rm -rf test_listener read_dff obj_dir slpp_all
 
@@ -277,10 +279,10 @@ uhdm/build:
 	(cd uhdm && make install)
 
 uhdm/restore: surelog/listener surelog/parse
-	./test_listener dff.uhdm
+	./test_listener $(TEST)/top.uhdm
 
 uhdm/print: surelog/parse read_dff
-	./read_dff dff.uhdm
+	./read_dff $(TEST)/top.uhdm
 
 uhdm/app: read_dff
 
@@ -296,17 +298,17 @@ read_dff:
 uhdm/verilator/build: uhdm/build image/bin/verilator
 
 uhdm/verilator/dff:
-	./image/bin/verilator --cc dff.sv --exe dff_main.cpp
-	make -j -C obj_dir -f Vdff.mk Vdff
-	obj_dir/Vdff
+	./image/bin/verilator --cc $(TEST)/top.sv --exe $(TEST)/top.sv
+	make -j -C obj_dir -f Vtop.mk Vtop
+	obj_dir/Vtop
 
 uhdm/verilator/get-ast:
-	./image/bin/verilator --cc dff.sv --exe dff_main.cpp --xml-only
+	./image/bin/verilator --cc $(TEST)/top.sv --exe $(TEST)/main.cpp --xml-only
 
 uhdm/verilator/ast-xml: uhdm/verilator/build surelog/parse
-	./image/bin/verilator --uhdm-ast --cc dff.uhdm --exe dff_simple.cpp --xml-only
+	./image/bin/verilator --uhdm-ast --cc $(TEST)/top.uhdm --exe $(TEST)/main.cpp --xml-only
 
 uhdm/verilator/test-ast: uhdm/verilator/build surelog/parse
-	./image/bin/verilator --uhdm-ast --cc dff.uhdm --exe dff_main.cpp --trace
-	 make -j -C obj_dir -f Vdff.mk Vdff
-	 obj_dir/Vdff
+	./image/bin/verilator --uhdm-ast --cc $(TEST)/top.uhdm --exe $(TEST)/main.cpp --trace
+	 make -j -C obj_dir -f Vtop.mk Vtop
+	 obj_dir/Vtop
