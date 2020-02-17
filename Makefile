@@ -248,7 +248,7 @@ verible/distclean: verible/clean
 surelog: Surelog/build/dist/Release/hellosureworld
 
 Surelog/build/dist/Release/hellosureworld:
-	(cd Surelog && make)
+	(cd Surelog && make PREFIX=$(PWD)/image && make install)
 
 surelog/listener: test_listener
 
