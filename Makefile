@@ -268,6 +268,12 @@ surelog/parse: surelog
 uhdm/clean:
 	rm -rf test_listener read_dff obj_dir slpp_all
 
+uhdm/cleanall: uhdm/clean
+	rm -rf ./image
+	(cd uhdm && make clean)
+	(cd verilator && make clean)
+	(cd Surelog && make clean)
+
 uhdm/build:
 	mkdir -p uhdm/build
 	(cd uhdm/build && cmake \
@@ -306,7 +312,7 @@ uhdm/verilator/get-ast:
 	./image/bin/verilator --cc $(TEST)/top.sv --exe $(TEST)/main.cpp --xml-only
 
 uhdm/verilator/ast-xml: uhdm/verilator/build surelog/parse
-	./image/bin/verilator --uhdm-ast --cc $(TEST)/top.uhdm --exe $(TEST)/main.cpp --xml-only
+	./image/bin/verilator --uhdm-ast --cc $(TEST)/top.uhdm --exe $(TEST)/main.cpp --xml-only --debug
 
 uhdm/verilator/test-ast: uhdm/verilator/build surelog/parse
 	./image/bin/verilator --uhdm-ast --cc $(TEST)/top.uhdm --exe $(TEST)/main.cpp --trace
