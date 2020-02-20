@@ -1,5 +1,6 @@
 TESTS = $(shell find tests -name *.sv | cut -d\/ -f2 | sort)
 TEST ?= tests/onenet
+TEST_SCRIPT ?= $(TEST)/yosys_script
 
 BAZEL_URL = https://github.com/bazelbuild/bazel/releases/download/1.1.0/bazel-1.1.0-dist.zip
 VERIBLE_PARSER ?= $(PWD)/verible/bazel-bin/verilog/tools/syntax/verilog_syntax
@@ -312,9 +313,13 @@ uhdm/verilator/get-ast:
 	./image/bin/verilator --cc $(TEST)/top.sv --exe $(TEST)/main.cpp --xml-only
 
 uhdm/verilator/ast-xml: uhdm/verilator/build surelog/parse
-	./image/bin/verilator --uhdm-ast --cc $(TEST)/top.uhdm --exe $(TEST)/main.cpp --xml-only --debug
+	./image/bin/verilator --uhdm-ast --cc $(TEST)/top.uhdm --exe $(TEST)/main.cpp --top-module work_TOP --xml-only --debug
 
 uhdm/verilator/test-ast: uhdm/verilator/build surelog/parse
-	./image/bin/verilator --uhdm-ast --cc $(TEST)/top.uhdm --exe $(TEST)/main.cpp --trace
-	 make -j -C obj_dir -f Vtop.mk Vtop
-	 obj_dir/Vtop
+	./image/bin/verilator --uhdm-ast --cc $(TEST)/top.uhdm --exe $(TEST)/main.cpp --top-module work_TOP --trace
+	 #make -j -C obj_dir -f Vtop.mk Vtop
+	 make -j -C obj_dir -f Vwork_TOP.mk Vwork_TOP
+	 obj_dir/Vwork_TOP
+
+uhdm/yosys/onenet: yosys/yosys
+	yosys/yosys -s $(TEST_SCRIPT)

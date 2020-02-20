@@ -30,3 +30,4 @@ before_install:
 
 script:
   - make TEST=$TEST_CASE uhdm/verilator/test-ast
+  - make TEST=$TEST_CASE uhdm/yosys/onenet
