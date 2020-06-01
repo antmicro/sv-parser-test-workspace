@@ -13,19 +13,6 @@ index fb9eca5..bda0468 100644
        - rtl/ibex_core.sv
      file_type: systemVerilogSource
  
-diff --git a/rtl/ibex_controller.sv b/rtl/ibex_controller.sv
-index a256a33..125d88e 100644
---- a/rtl/ibex_controller.sv
-+++ b/rtl/ibex_controller.sv
-@@ -465,7 +465,7 @@ module ibex_controller #(
-             // - first bit distinguishes interrupts from exceptions,
-             // - second bit adds 16 to fast interrupt ID
-             // for example EXC_CAUSE_IRQ_FAST_0 = {1'b1, 5'd16}
--            exc_cause_o = exc_cause_e'({2'b11, mfip_id});
-+            exc_cause_o = {2'b11, mfip_id};
-           end else if (irqs_i.irq_external) begin
-             exc_cause_o = EXC_CAUSE_IRQ_EXTERNAL_M;
-           end else if (irqs_i.irq_software) begin
 diff --git a/rtl/ibex_core.sv b/rtl/ibex_core.sv
 index 707eb5c..173e4dd 100644
 --- a/rtl/ibex_core.sv
@@ -54,71 +41,6 @@ index 2d9a4ef..8932883 100644
  ) (
    input                             clk_i,
    input                             rst_ni,
-diff --git a/rtl/ibex_decoder.sv b/rtl/ibex_decoder.sv
-index 80e6d54..a02f6fd 100644
---- a/rtl/ibex_decoder.sv
-+++ b/rtl/ibex_decoder.sv
-@@ -205,7 +205,7 @@ module ibex_decoder #(
-     ecall_insn_o          = 1'b0;
-     wfi_insn_o            = 1'b0;
- 
--    opcode                = opcode_e'(instr[6:0]);
-+    opcode                = instr[6:0];
- 
-     unique case (opcode)
- 
-@@ -602,7 +602,7 @@ module ibex_decoder #(
-     bt_b_mux_sel_o     = IMM_B_I;
- 
- 
--    opcode_alu         = opcode_e'(instr_alu[6:0]);
-+    opcode_alu         = instr_alu[6:0];
- 
-     use_rs3            = 1'b0;
-     alu_multicycle_o   = 1'b0;
-diff --git a/rtl/ibex_id_stage.sv b/rtl/ibex_id_stage.sv
-index a78c619..e9859b3 100644
---- a/rtl/ibex_id_stage.sv
-+++ b/rtl/ibex_id_stage.sv
-@@ -475,15 +475,15 @@ module ibex_id_stage #(
-     //   see any pending IRQs and consequently does not start to handle interrupts.
-     // - When modifying debug CSRs - TODO: Check if this is really needed
-     if (csr_op_en_o == 1'b1 && (csr_op_o == CSR_OP_WRITE || csr_op_o == CSR_OP_SET)) begin
--      if (csr_num_e'(instr_rdata_i[31:20]) == CSR_MSTATUS   ||
--          csr_num_e'(instr_rdata_i[31:20]) == CSR_MIE) begin
-+      if (instr_rdata_i[31:20] == CSR_MSTATUS   ||
-+          instr_rdata_i[31:20] == CSR_MIE) begin
-         csr_pipe_flush = 1'b1;
-       end
-     end else if (csr_op_en_o == 1'b1 && csr_op_o != CSR_OP_READ) begin
--      if (csr_num_e'(instr_rdata_i[31:20]) == CSR_DCSR      ||
--          csr_num_e'(instr_rdata_i[31:20]) == CSR_DPC       ||
--          csr_num_e'(instr_rdata_i[31:20]) == CSR_DSCRATCH0 ||
--          csr_num_e'(instr_rdata_i[31:20]) == CSR_DSCRATCH1) begin
-+      if (instr_rdata_i[31:20] == CSR_DCSR      ||
-+          instr_rdata_i[31:20] == CSR_DPC       ||
-+          instr_rdata_i[31:20] == CSR_DSCRATCH0 ||
-+          instr_rdata_i[31:20] == CSR_DSCRATCH1) begin
-         csr_pipe_flush = 1'b1;
-       end
-     end
-diff --git a/rtl/ibex_multdiv_fast.sv b/rtl/ibex_multdiv_fast.sv
-index efee4a4..f8d7a4e 100644
---- a/rtl/ibex_multdiv_fast.sv
-+++ b/rtl/ibex_multdiv_fast.sv
-@@ -110,9 +110,9 @@ module ibex_multdiv_fast #(
-   end
- 
- 
--  `ASSERT_KNOWN(DivEnKnown, div_en_internal);
--  `ASSERT_KNOWN(MultEnKnown, mult_en_internal);
--  `ASSERT_KNOWN(MultDivEnKnown, multdiv_en);
-+  `ASSERT_KNOWN(DivEnKnown, div_en_internal)
-+  `ASSERT_KNOWN(MultEnKnown, mult_en_internal)
-+  `ASSERT_KNOWN(MultDivEnKnown, multdiv_en)
- 
-   assign multdiv_en = mult_en_internal | div_en_internal;
- 
 diff --git a/shared/rtl/ram_1p.sv b/shared/rtl/ram_1p.sv
 index 244c390..1c8b581 100644
 --- a/shared/rtl/ram_1p.sv
