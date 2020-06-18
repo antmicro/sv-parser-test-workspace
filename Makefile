@@ -6,25 +6,18 @@ all:
 	@true
 
 clean::
-	rm -f top.log
-	rm -f sv2v.v top_artya7.edf
+	rm -f top.log yosys.log
+	rm -f top_artya7.edf
 	rm -f usage_statistics_webtalk.xml usage_statistics_webtalk.html
 
 distclean:: clean
 	rm -rf venv
 	(cd ibex && git clean -xdf && git reset --hard HEAD)
 	(cd yosys && git clean -xdf && git reset --hard HEAD)
-	rm -rf sv2v-Linux
-	rm -f sv2v-Linux.zip
+	rm -f top.bit
 
 yosys/yosys:
 	(cd yosys && make -j`nproc`)
-
-sv2v-Linux.zip:
-	wget -c https://github.com/zachjs/sv2v/releases/download/v0.0.3/sv2v-Linux.zip -O $@ && touch $@
-
-sv2v-Linux/sv2v: sv2v-Linux.zip
-	unzip $< && touch $@
 
 # ---------------------------------------------------
 venv/bin/activate:
@@ -51,34 +44,24 @@ ibex/build/lowrisc_ibex_top_artya7_0.1/synth-vivado/Makefile: venv/.fusesoc ibex
 ibex/prep: ibex/build/lowrisc_ibex_top_artya7_0.1/synth-vivado/Makefile
 
 # ------------------------------------------------------------------------------
-sv2v.v: \
-		./ibex/build/lowrisc_ibex_top_artya7_0.1/src/lowrisc_ibex_ibex_pkg_0.1/rtl/ibex_pkg.sv \
-		\
-		./ibex/build/lowrisc_ibex_top_artya7_0.1/src/lowrisc_ibex_ibex_core_0.1/rtl/ibex_alu.sv \
-		./ibex/build/lowrisc_ibex_top_artya7_0.1/src/lowrisc_ibex_ibex_core_0.1/rtl/ibex_fetch_fifo.sv \
-		./ibex/build/lowrisc_ibex_top_artya7_0.1/src/lowrisc_ibex_ibex_core_0.1/rtl/ibex_pmp.sv \
-		./ibex/build/lowrisc_ibex_top_artya7_0.1/src/lowrisc_ibex_ibex_core_0.1/rtl/ibex_core.sv \
-		\
-		./ibex/build/lowrisc_ibex_top_artya7_0.1/src/lowrisc_ibex_ibex_icache_0.1/rtl/ibex_icache.sv
-	./sv2v-Linux/sv2v \
-		-Iibex/build/lowrisc_ibex_top_artya7_0.1/src/lowrisc_prim_assert_0.1/rtl \
-		-DSRAM_INIT_FILE=./ibex/examples/sw/led/led.vmem \
-		$^ > $@
-
 top_artya7.edf: \
 		./ibex/build/lowrisc_ibex_top_artya7_0.1/src/lowrisc_ibex_ibex_pkg_0.1/rtl/ibex_pkg.sv \
 		\
+		./ibex/build/lowrisc_ibex_top_artya7_0.1/src/lowrisc_ibex_ibex_core_0.1/rtl/ibex_alu.sv \
 		./ibex/build/lowrisc_ibex_top_artya7_0.1/src/lowrisc_ibex_ibex_core_0.1/rtl/ibex_compressed_decoder.sv \
 		./ibex/build/lowrisc_ibex_top_artya7_0.1/src/lowrisc_ibex_ibex_core_0.1/rtl/ibex_controller.sv \
+		./ibex/build/lowrisc_ibex_top_artya7_0.1/src/lowrisc_ibex_ibex_core_0.1/rtl/ibex_core.sv \
 		./ibex/build/lowrisc_ibex_top_artya7_0.1/src/lowrisc_ibex_ibex_core_0.1/rtl/ibex_counters.sv \
 		./ibex/build/lowrisc_ibex_top_artya7_0.1/src/lowrisc_ibex_ibex_core_0.1/rtl/ibex_cs_registers.sv \
 		./ibex/build/lowrisc_ibex_top_artya7_0.1/src/lowrisc_ibex_ibex_core_0.1/rtl/ibex_decoder.sv \
 		./ibex/build/lowrisc_ibex_top_artya7_0.1/src/lowrisc_ibex_ibex_core_0.1/rtl/ibex_ex_block.sv \
+		./ibex/build/lowrisc_ibex_top_artya7_0.1/src/lowrisc_ibex_ibex_core_0.1/rtl/ibex_fetch_fifo.sv \
 		./ibex/build/lowrisc_ibex_top_artya7_0.1/src/lowrisc_ibex_ibex_core_0.1/rtl/ibex_id_stage.sv \
 		./ibex/build/lowrisc_ibex_top_artya7_0.1/src/lowrisc_ibex_ibex_core_0.1/rtl/ibex_if_stage.sv \
 		./ibex/build/lowrisc_ibex_top_artya7_0.1/src/lowrisc_ibex_ibex_core_0.1/rtl/ibex_load_store_unit.sv \
 		./ibex/build/lowrisc_ibex_top_artya7_0.1/src/lowrisc_ibex_ibex_core_0.1/rtl/ibex_multdiv_fast.sv \
 		./ibex/build/lowrisc_ibex_top_artya7_0.1/src/lowrisc_ibex_ibex_core_0.1/rtl/ibex_multdiv_slow.sv \
+		./ibex/build/lowrisc_ibex_top_artya7_0.1/src/lowrisc_ibex_ibex_core_0.1/rtl/ibex_pmp.sv \
 		./ibex/build/lowrisc_ibex_top_artya7_0.1/src/lowrisc_ibex_ibex_core_0.1/rtl/ibex_prefetch_buffer.sv \
 		./ibex/build/lowrisc_ibex_top_artya7_0.1/src/lowrisc_ibex_ibex_core_0.1/rtl/ibex_register_file_fpga.sv \
 		./ibex/build/lowrisc_ibex_top_artya7_0.1/src/lowrisc_ibex_ibex_core_0.1/rtl/ibex_wb_stage.sv \
@@ -95,17 +78,18 @@ top_artya7.edf: \
 		./ibex/build/lowrisc_ibex_top_artya7_0.1/src/lowrisc_ibex_fpga_xilinx_shared_0/rtl/fpga/xilinx/clkgen_xil7series.sv \
 		./ibex/build/lowrisc_ibex_top_artya7_0.1/src/lowrisc_ibex_fpga_xilinx_shared_0/rtl/ram_1p.sv \
 		\
-		./ibex/build/lowrisc_ibex_top_artya7_0.1/src/lowrisc_ibex_top_artya7_0.1/rtl/top_artya7.sv \
+		./ibex/build/lowrisc_ibex_top_artya7_0.1/src/lowrisc_ibex_ibex_icache_0.1/rtl/ibex_icache.sv \
 		\
-		sv2v.v
+		./ibex/build/lowrisc_ibex_top_artya7_0.1/src/lowrisc_ibex_top_artya7_0.1/rtl/top_artya7.sv
 	./yosys/yosys \
-		-p 'read_verilog -sv -Iibex/build/lowrisc_ibex_top_artya7_0.1/src/lowrisc_prim_assert_0.1/rtl $^' \
+		-p 'read_verilog -DSRAM_INIT_FILE=led.vmem -sv -Iibex/build/lowrisc_ibex_top_artya7_0.1/src/lowrisc_prim_assert_0.1/rtl $^' \
 		-p 'synth_xilinx -iopad -family xc7' \
-		-p 'write_edif -pvector bra $@'
+		-p 'write_edif -pvector bra $@' \
+		-l yosys.log
 
 top/build: \
 		ibex/build/lowrisc_ibex_top_artya7_0.1/synth-vivado/Makefile \
-		sv2v-Linux/sv2v yosys/yosys \
+		yosys/yosys \
 		build.tcl top_artya7.edf
 	( \
 		. $(VIVADO)/settings64.sh ; \
