@@ -27,11 +27,8 @@ venv/.fusesoc: venv/bin/activate ibex/.patch
 	( . $< ; pip3 install -r $(PWD)/ibex/python-requirements.txt ) && touch $@
 
 # ---------------------------------------------------
-ibex/.checkout:
-	(cd ibex && git checkout 37fd4236c854fdda4543ce7cdced6d48149e2c3e) && touch $@
-
-ibex/.patch: ibex/.checkout $(PWD)/ibex.patch
-	(cd ibex && patch -Np1 < $(word 2,$^)) && touch $@
+ibex/.patch: $(PWD)/ibex.patch
+	(cd ibex && patch -Np1 < $<) && touch $@
 
 ibex/build/lowrisc_ibex_top_artya7_0.1/synth-vivado/Makefile: venv/.fusesoc ibex/.patch
 	( \
